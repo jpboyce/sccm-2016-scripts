@@ -16,7 +16,7 @@ $readinessBranch1 | Add-Member -MemberType NoteProperty -Name "Name" -Value "Def
 $readinessBranch1 | Add-Member -MemberType NoteProperty -Name "Data" -Value 1
 $readinessBranch2 | Add-Member -MemberType NoteProperty -Name "Name" -Value "LTSB"
 $readinessBranch2 | Add-Member -MemberType NoteProperty -Name "Data" -Value 2
-$readinessBranch = @($readinessBranch0,$readinessBranch1,$readinessBranch2)
+$readinessBranch = @($readinessBranch0, $readinessBranch1, $readinessBranch2)
 
 $osbuild = @()
 $build1709 = New-Object -TypeName psobject
@@ -25,16 +25,16 @@ $build1607 = New-Object -TypeName psobject
 $build1511 = New-Object -TypeName psobject
 $build1507 = New-Object -TypeName psobject
 $build1709 | Add-Member -MemberType NoteProperty -Name "Version" -Value "1709"
- $build1709 | Add-Member -MemberType NoteProperty -Name "Build" -Value 16299  
+$build1709 | Add-Member -MemberType NoteProperty -Name "Build" -Value 16299  
 $build1703 | Add-Member -MemberType NoteProperty -Name "Version" -Value "1703"
- $build1703 | Add-Member -MemberType NoteProperty -Name "Build" -Value 15063 
+$build1703 | Add-Member -MemberType NoteProperty -Name "Build" -Value 15063 
 $build1607 | Add-Member -MemberType NoteProperty -Name "Version" -Value "1607"
- $build1607 | Add-Member -MemberType NoteProperty -Name "Build" -Value 14393 
+$build1607 | Add-Member -MemberType NoteProperty -Name "Build" -Value 14393 
 $build1511 | Add-Member -MemberType NoteProperty -Name "Version" -Value "1511"
- $build1511 | Add-Member -MemberType NoteProperty -Name "Build" -Value 10586 
+$build1511 | Add-Member -MemberType NoteProperty -Name "Build" -Value 10586 
 $build1507 | Add-Member -MemberType NoteProperty -Name "Version" -Value "1507"
- $build1507 | Add-Member -MemberType NoteProperty -Name "Build" -Value 10240 
-$osbuild = @($build1709,$build1703,$build1607,$build1511,$build1507)
+$build1507 | Add-Member -MemberType NoteProperty -Name "Build" -Value 10240 
+$osbuild = @($build1709, $build1703, $build1607, $build1511, $build1507)
 
 $rings = @()
 $ring0 = New-Object -TypeName psobject
@@ -86,55 +86,62 @@ $ring6 | Add-Member -MemberType NoteProperty -Name "RingID" -Value 6
 $ring6 | Add-Member -MemberType NoteProperty -Name "LifecyclePhase" -Value "Critical"
 $ring6 | Add-Member -MemberType NoteProperty -Name "DeploymentRing" -Value "Cbb"
 $ring6 | Add-Member -MemberType NoteProperty -Name "WaitDays" -Value 60
-$rings = @($ring0,$ring1,$ring2,$ring3,$ring4,$ring5,$ring6)
+$rings = @($ring0, $ring1, $ring2, $ring3, $ring4, $ring5, $ring6)
 
 Push-Location
 $cmdrive = Get-PSDrive -PSProvider CMSite
+write-host "Setting location to CMSite $($cmdrive.Name)"
 CD "$($cmdrive.Name):"
 # Create Readiness Branch Collections
-<#
-foreach($item in $readinessBranch){
+Function Add-ReadinessCollections {
+    foreach ($item in $readinessBranch) {
     
-    $colname = "All Windows 10 Devices on Readiness Branch $($item.name)"
-    $colquerycriteria = $item.Data
-    $colquery = "select SMS_R_SYSTEM.ResourceID,SMS_R_SYSTEM.ResourceType,SMS_R_SYSTEM.Name,SMS_R_SYSTEM.SMSUniqueIdentifier,SMS_R_SYSTEM.ResourceDomainORWorkgroup,SMS_R_SYSTEM.Client from SMS_R_System where SMS_R_SYSTEM.OperatingSystemNameandVersion like '%Workstation 10.0%' AND SMS_R_System.OSBranch = $($colquerycriteria)"
-    $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
-    $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic #-WhatIf
+        $colname = "All Windows 10 Devices on Readiness Branch $($item.name)"
+        $colquerycriteria = $item.Data
+        $colquery = "select SMS_R_SYSTEM.ResourceID,SMS_R_SYSTEM.ResourceType,SMS_R_SYSTEM.Name,SMS_R_SYSTEM.SMSUniqueIdentifier,SMS_R_SYSTEM.ResourceDomainORWorkgroup,SMS_R_SYSTEM.Client from SMS_R_System where SMS_R_SYSTEM.OperatingSystemNameandVersion = 'Microsoft Windows NT Workstation 10.0' AND SMS_R_System.OSBranch = $($colquerycriteria)"
+        $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
+        $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic #-WhatIf
 
-    Add-CMDeviceCollectionQueryMembershipRule -Collection $Collection -RuleName $colname -QueryExpression $colquery 
-    Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
-
-} #>
-
-# Create OS Build Collections
-<# foreach($item in $osbuild){
-    $colname = "All Windows 10 Build $($item.Build) Devices (Version $($item.Version))"
-    $colquerycriteria = $item.Build
-    $colquery = "select SMS_R_SYSTEM.ResourceID,SMS_R_SYSTEM.ResourceType,SMS_R_SYSTEM.Name,SMS_R_SYSTEM.SMSUniqueIdentifier,SMS_R_SYSTEM.ResourceDomainORWorkgroup,SMS_R_SYSTEM.Client from SMS_R_System inner join SMS_G_System_OPERATING_SYSTEM on SMS_G_System_OPERATING_SYSTEM.ResourceId = SMS_R_System.ResourceId where SMS_R_System.OperatingSystemNameandVersion like '%Workstation 10.0%' and SMS_G_System_OPERATING_SYSTEM.BuildNumber = $($colquerycriteria)"
-    $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
-    $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic
-    Add-CMDeviceCollectionQueryMembershipRule -Collection $Collection -RuleName $colname -QueryExpression $colquery
-    Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
-} #>
-
-#Create Ring Collections
-foreach($item in $rings){
-    $colname = "Windows 10 Servicing - Deployment $($item.RingName) ($($item.LifecyclePhase))"
-    # We aren't setting a query on these
-    $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
-    $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic
-    Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
+        Add-CMDeviceCollectionQueryMembershipRule -Collection $Collection -RuleName $colname -QueryExpression $colquery 
+        #Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
+    } 
 }
 
-#$runtime
-#$runuser
+# Create OS Build Collections
+Function Add-OSBuildCollections {
+    foreach ($item in $osbuild) {
+        $colname = "All Windows 10 Build $($item.Build) Devices (Version $($item.Version))"
+        $colquerycriteria = $item.Build
+        $colquery = "select SMS_R_SYSTEM.ResourceID,SMS_R_SYSTEM.ResourceType,SMS_R_SYSTEM.Name,SMS_R_SYSTEM.SMSUniqueIdentifier,SMS_R_SYSTEM.ResourceDomainORWorkgroup,SMS_R_SYSTEM.Client from SMS_R_System inner join SMS_G_System_OPERATING_SYSTEM on SMS_G_System_OPERATING_SYSTEM.ResourceId = SMS_R_System.ResourceId where SMS_R_System.OperatingSystemNameandVersion = 'Microsoft Windows NT Workstation 10.0' and SMS_G_System_OPERATING_SYSTEM.BuildNumber = $($colquerycriteria)"
+        $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
+        $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic
+        Add-CMDeviceCollectionQueryMembershipRule -Collection $Collection -RuleName $colname -QueryExpression $colquery
+        #Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
+    }
+}
+
+#Create Ring Collections
+Function Add-RingCollections {
+    foreach ($item in $rings) {
+        $colname = "Windows 10 Servicing - Deployment $($item.RingName) ($($item.LifecyclePhase))"
+        # We aren't setting a query on these
+        $colschedule = New-CMSchedule -Start "01/01/2018 1:00 AM" -RecurCount 1 -RecurInterval Days
+        $Collection = New-CMDeviceCollection -Name $colname -Comment "Automatically created by script on $($runtime) by $($runuser)" -LimitingCollectionName "All Desktop and Server Clients" -RefreshSchedule $colschedule -RefreshType Periodic
+        #Move-CMObject -InputObject $Collection -FolderPath "$($cmdrive.Name):\DeviceCollection\$($CollectionFolder)"
+    }
+}
+
+Add-RingCollections
+Add-OSBuildCollections
+Add-ReadinessCollections
+
 # check if SCCM admin UI path is set
-if($env:SMS_ADMIN_UI_PATH){
+if ($env:SMS_ADMIN_UI_PATH) {
     #Write-Output "The SMS_ADMIN_UI_PATH exists, checking for SCCM PS module in there"
     # path exists, check for location of module file
-    $modulefolder = $env:SMS_ADMIN_UI_PATH.Substring(0,$env:SMS_ADMIN_UI_PATH.Length - 4)
+    $modulefolder = $env:SMS_ADMIN_UI_PATH.Substring(0, $env:SMS_ADMIN_UI_PATH.Length - 4)
     $modulefullpath = "$($modulefolder)ConfigurationManager.psd1"
-    if(test-path -Path $modulefullpath  ) {
+    if (test-path -Path $modulefullpath  ) {
         #Write-Output "Module exists, attempting to add"
         Import-Module -Name $modulefullpath 
     }
